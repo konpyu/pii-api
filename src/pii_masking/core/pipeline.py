@@ -196,3 +196,40 @@ class MaskingPipeline:
         all_entities.sort(key=lambda e: e.start)
 
         return all_entities
+
+
+class PIIMaskingPipeline:
+    """Async wrapper for the masking pipeline to be used by the API."""
+
+    def __init__(self, cache: Optional[CacheProvider] = None) -> None:
+        """Initialize the async pipeline wrapper."""
+        self.pipeline = MaskingPipeline(cache=cache)
+
+    async def process(self, text: str) -> Dict[str, Any]:
+        """
+        Process text asynchronously and return API-compatible result.
+
+        Args:
+            text: Input text to mask
+
+        Returns:
+            Dictionary with masked_text, entities, risk_score, and cached flag
+        """
+        # The underlying pipeline is synchronous, but we wrap it for future async support
+        result = self.pipeline.mask_text(text)
+
+        # Convert to API response format
+        return {
+            "masked_text": result.masked_text,
+            "entities": [
+                {
+                    "text": entity.text,
+                    "label": entity.label,
+                    "start": entity.start,
+                    "end": entity.end,
+                }
+                for entity in result.entities
+            ],
+            "risk_score": result.risk_score,
+            "cached": result.cached,
+        }

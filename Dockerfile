@@ -16,10 +16,14 @@ RUN python3 -m venv $POETRY_VENV
 COPY pyproject.toml poetry.lock* ./
 
 # Install dependencies into the virtual environment
-# --no-dev: Do not install development dependencies
-# --no-interaction: Do not ask any interactive questions
-# --no-ansi: Disable ANSI output
-RUN poetry install --no-dev --no-interaction --no-ansi
+# We need to use poetry export to install in the venv
+# First, configure poetry to use the venv
+ENV POETRY_VIRTUALENVS_PATH=$POETRY_VENV
+ENV POETRY_VIRTUALENVS_IN_PROJECT=false
+
+# Install dependencies
+RUN . $POETRY_VENV/bin/activate && \
+    poetry install --only main --no-interaction --no-ansi
 
 # --- 2. Runner Stage: Create the final, lean image ---
 FROM python:3.10-slim as runner
@@ -35,10 +39,16 @@ COPY --from=builder /opt/venv /opt/venv
 WORKDIR /app
 
 # Copy the application code
-COPY pii_masking_api_app.py .
+COPY src/ ./src/
+
+# Copy config files if needed
+COPY src/pii_masking/config/regex_patterns.yaml ./src/pii_masking/config/
+
+# Set Python path
+ENV PYTHONPATH=/app
 
 # Expose the port the app runs on
 EXPOSE 8080
 
 # Run the application
-CMD ["uvicorn", "pii_masking_api_app:app", "--host", "0.0.0.0", "--port", "8080"] 
+CMD ["uvicorn", "src.pii_masking.api.main:app", "--host", "0.0.0.0", "--port", "8080"] 

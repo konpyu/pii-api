@@ -8,7 +8,7 @@ lint:
 	flake8 .
 
 type-check:
-	mypy src tests
+	mypy src/pii_masking tests --explicit-package-bases
 
 test:
 	pytest

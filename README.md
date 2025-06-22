@@ -31,8 +31,11 @@ pip install -e .
 # Run the demo
 poetry run python demo.py
 
-# Or with PYTHONPATH
-PYTHONPATH=src python demo.py
+# Start the API server
+poetry run uvicorn src.pii_masking.api.main:app --reload
+
+# Or use the convenience script
+poetry run python run_api.py
 ```
 
 ## Usage
@@ -57,10 +60,30 @@ print(result.entities)     # [Entity(text='田中', label='PERSON'), ...]
 
 ```bash
 # Start the FastAPI server
-poetry run uvicorn pii_masking_api_app:app --reload
+poetry run uvicorn src.pii_masking.api.main:app --reload
+
+# Or use the convenience script
+poetry run python run_api.py
 
 # Access API documentation
 # http://localhost:8000/docs
+```
+
+### API Usage
+
+```bash
+# Mask text via API
+curl -X POST "http://localhost:8000/mask" \
+     -H "Content-Type: application/json" \
+     -d '{"text": "田中さんの電話番号は03-1234-5678です。"}'
+
+# Response:
+# {
+#   "masked_text": "<MASK>さんの電話番号は<MASK>です。",
+#   "entities": [{"text": "田中", "label": "PERSON"}],
+#   "risk_score": 0.7,
+#   "cached": false
+# }
 ```
 
 ## Supported PII Types
